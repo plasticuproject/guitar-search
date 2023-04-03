@@ -1,0 +1,9 @@
+>>> with open("./dumps/reverb_electric_guitars.json", "r", encoding="utf-8") as infile:
+...     data = json.load(infile)
+...     listings: List[Listing] = [Listing(**i) for i in data]
+... 
+>>> for i in listings:
+...     if i.make == "Charvel":
+...         print("yes")
+
+2023-04-02T08:09:28-05:00
