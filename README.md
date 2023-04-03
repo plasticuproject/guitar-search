@@ -6,7 +6,7 @@
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=plasticuproject_guitar-search&metric=alert_status)](https://sonarcloud.io/dashboard?id=plasticuproject_guitar-search)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=plasticuproject_guitar-search&metric=security_rating)](https://sonarcloud.io/dashboard?id=plasticuproject_guitar-search)
 
-WIP guitar finder service thing.
+WIP guitar finder service.
 
 Requirements:
 - python >= 3.8
