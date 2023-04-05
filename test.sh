@@ -37,6 +37,7 @@ echo "\n----------------------------------------------------------------------"
 echo "\nGenerating Code Coverage Report:\n"
 python -m coverage lcov -o ./coverage/lcov.info
 python -m coverage html
+python -m coverage xml
 echo "\n"
 python -m coverage report
 echo "\n----------------------------------------------------------------------\n"
