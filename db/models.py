@@ -29,10 +29,11 @@ class Instrument(SQLModel, table=True):
 
 class User(SQLModel, table=True):
     """User table."""
-    # __table_args__ = (UniqueConstraint("email"),)
     id: Optional[int] = Field(default=None, primary_key=True)
     email: str = Field(index=True, unique=True)
     active: bool
     date_created: datetime
-    instruments: Optional[Instrument] = Relationship(back_populates="users",
-                                                     link_model=UserInstrumentLink)
+    instruments: Optional[Instrument] = Relationship(
+        back_populates="users",
+        link_model=UserInstrumentLink
+    )
