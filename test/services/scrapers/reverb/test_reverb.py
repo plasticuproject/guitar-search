@@ -74,10 +74,12 @@ class ReverbTests(unittest.TestCase):
         listings: List[Listing] = [Listing(**i) for i in data]
 
     def setUp(self) -> None:
-        pass
+        """Set up the test fixture before
+        exercising it."""
 
     def tearDown(self) -> None:
-        pass
+        """Deconstruct the test fixture
+        after testing it."""
 
     @mock.patch("services.scrapers.reverb.reverb.requests.get",
                 side_effect=mocked_requests_get)
