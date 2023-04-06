@@ -3,8 +3,11 @@
 import unittest
 from datetime import datetime, timezone
 from sqlalchemy.future.engine import Engine
-from sqlmodel import SQLModel, create_engine, Session, select
+from sqlmodel import SQLModel, create_engine, Session
 from db.models import User, Instrument, UserInstrumentLink
+from db.crud import (get_user_by_email, update_user_instruments,
+                     get_user_instruments, get_instrument_by_id,
+                     delete_user_by_email, delete_orphaned_instruments)
 
 
 def _create_data(engine: Engine) -> User:
@@ -38,6 +41,7 @@ def _create_data(engine: Engine) -> User:
             date_created=datetime.now(timezone.utc),
             instruments=[instrument_1, instrument_2],
         )
+
         session.add(user_1)
         session.add(user_2)
         session.commit()
@@ -76,82 +80,61 @@ class ModelsAndDatabaseTests(unittest.TestCase):
     def test_read_database(self) -> None:
         """Test reading data from the database."""
         _ = _create_data(self.engine)
-        with Session(self.engine) as session:
-            statement_1 = select(Instrument).where(Instrument.id == 1)
-            result_1 = session.exec(statement_1)
-            instrument_1 = result_1.one()
+
+        no_instrument = get_instrument_by_id(99, self.engine)
+        self.assertFalse(no_instrument)
+
+        instrument_1 = get_instrument_by_id(1, self.engine)
+        self.assertTrue(instrument_1)
+
+        if instrument_1:
             self.assertEqual(instrument_1.id, 1)
             self.assertEqual(instrument_1.make, "Ibanez")
             self.assertEqual(instrument_1.model, "RG470")
             self.assertIsInstance(instrument_1.date_created, datetime)
 
-            statement_2 = (select(Instrument)
-                           .join(UserInstrumentLink)
-                           .join(User)
-                           .where(User.email == self.john_email and
-                                  User.active))
-            john = list(session.exec(statement_2))
-            self.assertEqual(john[0].make, "Ibanez")
-            self.assertEqual(john[1].make, "Gibson")
+        john = get_user_by_email(self.john_email, self.engine)
+        david = get_user_by_email(self.david_email, self.engine)
+        self.assertTrue(john)
+        self.assertTrue(david)
 
-            statement_3 = (select(Instrument)
-                           .join(UserInstrumentLink)
-                           .join(User)
-                           .where(User.email == self.david_email and
-                                  User.active))
-            david = list(session.exec(statement_3))
-            self.assertEqual(david[0].make, "Ibanez")
+        if john:
+            john_instruments = get_user_instruments(john, self.engine)
+            self.assertEqual(john_instruments[0].make, "Ibanez")
+            self.assertEqual(john_instruments[1].make, "Gibson")
+
+        if david:
+            david_instruments = get_user_instruments(david, self.engine)
+            self.assertEqual(david_instruments[0].make, "Ibanez")
 
     def test_update_database(self) -> None:
         """Test updating the database."""
         _ = _create_data(self.engine)
-        with Session(self.engine) as session:
-            ceo_10 = Instrument(
-                type="acoustic_guitar",
-                make="Martin",
-                model="CEO-10",
-                date_created=datetime.now(timezone.utc),
-            )
 
-            statement_1 = select(User).where(User.email == self.david_email)
-            david = session.exec(statement_1).first()
-            if david:
-                session.add(ceo_10)
-                session.commit()
-                link = UserInstrumentLink(user_id=david.id,
-                                          instrument_id=ceo_10.id)
-                session.add(link)
-                session.commit()
+        ceo_10 = Instrument(
+            type="acoustic_guitar",
+            make="Martin",
+            model="CEO-10",
+            date_created=datetime.now(timezone.utc),
+        )
 
-            statement_2 = (select(Instrument)
-                           .join(UserInstrumentLink)
-                           .join(User)
-                           .where(User.email == self.david_email and
-                                  User.active))
-            new_david = list(session.exec(statement_2))
-            self.assertEqual(new_david[1].make, "Martin")
+        david = get_user_by_email(self.david_email, self.engine)
+        self.assertTrue(david)
+
+        if david:
+            update_user_instruments(david, ceo_10, self.engine)
+            david_instruments = get_user_instruments(david, self.engine)
+            self.assertEqual(david_instruments[1].make, "Martin")
 
     def test_delete_user(self) -> None:
         """Test deleting user from the database."""
         _ = _create_data(self.engine)
+
+        delete_user_by_email(self.david_email, self.engine)
+        delete_user_by_email(self.john_email, self.engine)
+        delete_orphaned_instruments(self.engine)
+
         with Session(self.engine) as session:
-            statement_1 = select(User).where(User.email == self.david_email)
-            david = session.exec(statement_1).first()
-            session.delete(david)
-            statement_2 = select(User).where(User.email == self.john_email)
-            john = session.exec(statement_2).first()
-            session.delete(john)
-            session.commit()
-
-            orphan_instrument_ids = (session.query(Instrument.id)
-                                     .filter(Instrument.users is not None)
-                                     .all()
-                                     )
-            for instrument_id in orphan_instrument_ids:
-                instrument = session.get(Instrument, instrument_id[0])
-                session.delete(instrument)
-            session.commit()
-
             user_count = session.query(User).count()
             instrument_count = session.query(Instrument).count()
             link_count = session.query(UserInstrumentLink).count()
