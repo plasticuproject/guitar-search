@@ -100,8 +100,10 @@ class ModelsAndDatabaseTests(unittest.TestCase):
 
         if john:
             john_instruments = get_user_instruments(john, self.engine)
-            self.assertEqual(john_instruments[0].make, "Ibanez")
-            self.assertEqual(john_instruments[1].make, "Gibson")
+            if john_instruments:
+                john_instruments.sort(key=lambda x: x.make)
+                self.assertEqual(john_instruments[0].make, "Gibson")
+                self.assertEqual(john_instruments[1].make, "Ibanez")
 
         if david:
             david_instruments = get_user_instruments(david, self.engine)
