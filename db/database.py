@@ -10,7 +10,6 @@ POSTGRES = f"postgresql://{getenv('database')}?sslmode=require"
 engine = create_engine(POSTGRES, echo=False)
 
 
-
 def create_db_and_tables() -> None:
     """Create database and tables."""
     SQLModel.metadata.create_all(engine)
